@@ -10,26 +10,28 @@
  */
 var zmq = require('zmq')
 var express = require('express')
+
+var chatvideoSubscriber = zmq.socket('sub')
+
 var videoSubscriber = zmq.socket('sub')
+var commandReceiver = zmq.socket('pull'), 
+	commandPublisher = zmq.socket('pub')
 
-var clientCount = 0
-, clients = new Array()
+var eventReceiver = zmq.socket('pull')
 
-// default port for ZeroMQ
-var videoPort		= 4010
+var clientCount = 0, clients = new Array()
 
-var app = module.exports = express();
-app.use(express.logger());
+// default ports for ZeroMQ
+var videoPort = process.env.VIDEOPORT || 4000
+var commandPort = process.env.COMMANDPORT || 4010
+var eventPort = process.env.EVENTPORT || 4020
+var chatvideoPort = process.env.CHATVIDEOPORT || 4030
+
+var app = module.exports = express()
+app.use(express.logger())
+
+// default port for NodeJS server
 var restport = process.env.PORT || 5000;
-
-// check if ports were provided as arguments
-process.argv.forEach(function (val, index, array) {
-	switch(index) {
-	case 2: 
-		videoPort = val
-		break;
-	}
-})
 
 // implement format string
 if (!String.prototype.format) {
@@ -60,18 +62,32 @@ var image = {
 
 var new_image_flag;
 
-// Video Forwarder -------------------------------------------------
-// a video message has 4 fields, target, width, height and data
-videoSubscriber.on('message', function(target, width, height, data) {
-	image.target = target;
-	image.width = width;
-	image.height = height;
-	image.data = data;
-	new_image_flag = true;
+/*
+ * The chatvideoSubscriber is able to receive ZMQ images over port chatvideoPort. This is the one that is used by the 
+ * ZMQ Video Chat on the play store of Google. 
+ */
+
+chatvideoSubscriber.subscribe('')
+chatvideoSubscriber.bind('tcp://*:{0}'.format(Number(chatvideoPort)), function(err) {
+	if (err)
+		console.log(err)
+	else
+		console.log('Chat video listening on {0}'.format(Number(chatvideoPort)))
 })
 
-// subscribe to everything
-videoSubscriber.subscribe('')
+// Video Forwarder -------------------------------------------------
+// a video message from the ZMQ Video Chat application has 4 fields, target, width, height and data
+chatvideoSubscriber.on('message', function(target, width, height, data) {
+	image.target = target
+	image.width = width
+	image.height = height
+	image.data = data
+	new_image_flag = true
+})
+
+// The videoSubscriber is able to receive ZMQ images over port videoPort
+
+videoSubscriber.subscribe('');
 videoSubscriber.bind('tcp://*:{0}'.format(Number(videoPort)), function(err) {
 	if (err)
 		console.log(err)
@@ -79,9 +95,64 @@ videoSubscriber.bind('tcp://*:{0}'.format(Number(videoPort)), function(err) {
 		console.log('Video Listening on {0}'.format(Number(videoPort)))
 })
 
+// The videoSubscriber is able to receive ZMQ images over port videoPort
+
+videoSubscriber.on('message', function(target, rotation, data) {
+	try {
+		videoPending++
+
+		console.log('Video received ', videoPending)
+		// forward (publish) the received video frame to the subscribed clients
+		videoPublisher.send([target, rotation, data]);
+
+		// serverProcessed();
+
+		// encode the video frame as base64 and publish it
+		videoBase64Publisher.send([target, rotation, data.toString('base64')]);
+	} catch(err) {
+		console.log('videoSubscriber', err)
+	}
+
+})
+
+/*
+ * The commandReceiver gets commands over ZMQ.
+ */
+
+commandReceiver.bind('tcp://*:{0}'.format(Number(commandPort)), function(err) {
+	if (err)
+		console.log(err)
+	else
+		console.log('Command Listening on {0}'.format(Number(commandPort)))
+})
+
+// Commands received in [target, data] format.
+
+commandReceiver.on('message', function(target, data) {
+	try {
+		commandPending++
+		console.log('Command received ', commandPending, ':', target.toString(), data.toString())
+
+		// forward (publish) the received video frame to the subscribed clients
+		commandPublisher.send([target, data])
+
+		// serverProcessed();
+	} catch(err) {
+		console.log('commandReceiver', err)
+	}
+
+})
+
+commandPublisher.bind('tcp://*:{0}'.format(Number(commandPort)+1), function(err) {
+	if (err)
+		console.log(err)
+	else
+		console.log('Command Sending on {0}'.format(Number(commandPort)+1))
+})
+
 // REST server --------------------------------------------------------------------------------------------------------
 
-// this is the only REST API call that is relevant, it gets an image
+// Get an image
 app.get('/image', function(req, res) {
 	if (new_image_flag === false)
 		res.send({ success: false })
@@ -91,9 +162,21 @@ app.get('/image', function(req, res) {
 	}
 })
 
-app.listen(restport, function() {
-  console.log("Listening on " + restport);
+app.post('/command/:target', function(req,res) {
+	try {
+		commandPending++
+		console.log('Send command ', commandPending, ':', req.params.target, req.data)
+		commandPublisher.send([req.params.target, req.data])
+	} catch(err) {
+		console.log('post-command', err)
+	}
 })
+
+
+app.listen(restport, function() {
+	console.log("Listening on " + restport)
+})
+
 
 // Shutdown -----------------------------------------------------------------------------------------------------------
 process.on('SIGINT', function() {
