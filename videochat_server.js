@@ -31,7 +31,9 @@ var eventPort = process.env.EVENTPORT || 4020
 var chatvideoPort = process.env.CHATVIDEOPORT || 4030
 
 var app = module.exports = express()
+app.use(express.bodyParser()) // to parse application/json encoded requests
 app.use(express.logger())
+
 
 // default port for NodeJS server
 var restport = process.env.PORT || 5000;
