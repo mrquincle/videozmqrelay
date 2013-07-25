@@ -188,10 +188,11 @@ app.post('/simplecommand', function(req,res) {
 	try {
 		commandCount++
 		console.log('Send command ', commandCount, ':', req.body)
-		var command;
-		command.data = req.body;
-		command.header = { 
-			id: 171, tid: 0, timestamp: 0, robot_id: "Romo", version: "0.1" 
+		var command = {
+			data = req.body;
+			header = { 
+				id: 171, tid: 0, timestamp: 0, robot_id: "Romo", version: "0.1" 
+			}
 		}
 		commandPublisher.send(['', JSON.stringify(command)])
 		res.send({ success: true })
