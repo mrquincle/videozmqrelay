@@ -170,11 +170,12 @@ app.get('/image', function(req, res) {
 	}
 })
 
-app.post('/command/:target', function(req,res) {
+// used to be /command:target with send(req.params.target, ..)
+app.post('/command', function(req,res) {
 	try {
 		commandCount++
-		console.log('Send command ', commandCount, ':', req.params.target, req.data)
-		commandPublisher.send([req.params.target, req.data])
+		console.log('Send command ', commandCount, ':', req.data)
+		commandPublisher.send(['', req.data])
 	} catch(err) {
 		console.log('post-command', err)
 	}
