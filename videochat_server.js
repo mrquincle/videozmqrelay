@@ -189,8 +189,8 @@ app.post('/simplecommand', function(req,res) {
 		commandCount++
 		console.log('Send command ', commandCount, ':', req.body)
 		var command = {
-			data = req.body;
-			header = { 
+			data: req.body,
+			header: { 
 				id: 171, tid: 0, timestamp: 0, robot_id: "Romo", version: "0.1" 
 			}
 		}
