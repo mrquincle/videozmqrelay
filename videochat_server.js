@@ -178,6 +178,7 @@ app.post('/command', function(req,res) {
 		commandCount++
 		console.log('Send command ', commandCount, ':', req.body)
 		commandPublisher.send(['', req.body])
+		res.send({ success: true })
 	} catch(err) {
 		console.log('post-command', err)
 	}
