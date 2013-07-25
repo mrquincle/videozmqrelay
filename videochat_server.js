@@ -177,7 +177,8 @@ app.post('/command', function(req,res) {
 	try {
 		commandCount++
 		console.log('Send command ', commandCount, ':', req.body)
-		commandPublisher.send(['', req.body])
+		//res.writeHead(200, { 'Content-Type': 'application/json' });   
+		commandPublisher.send(['', JSON.stringify(req.body)])
 		res.send({ success: true })
 	} catch(err) {
 		console.log('post-command', err)
