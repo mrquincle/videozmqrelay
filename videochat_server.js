@@ -21,6 +21,8 @@ var eventReceiver = zmq.socket('pull')
 
 var clientCount = 0, clients = new Array()
 
+var videoCount = 0
+
 // default ports for ZeroMQ
 var videoPort = process.env.VIDEOPORT || 4000
 var commandPort = process.env.COMMANDPORT || 4010
@@ -99,9 +101,9 @@ videoSubscriber.bind('tcp://*:{0}'.format(Number(videoPort)), function(err) {
 
 videoSubscriber.on('message', function(target, rotation, data) {
 	try {
-		videoPending++
+		videoCount++
 
-		console.log('Video received ', videoPending)
+		console.log('Video received ', videoCount)
 		// forward (publish) the received video frame to the subscribed clients
 		videoPublisher.send([target, rotation, data]);
 
