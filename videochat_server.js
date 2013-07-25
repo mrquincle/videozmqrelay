@@ -104,11 +104,12 @@ videoSubscriber.on('message', function(target, rotation, data) {
 	//try {
 	videoCount++
 
-	console.log('Video received ', videoCount)
+	if (!(videoCount % 1000))
+		console.log('Video received ', videoCount)
 
 	image.data = data
 	new_image_flag = true
-	
+
 		// forward (publish) the received video frame to the subscribed clients
 		//videoPublisher.send([target, rotation, data]);
 
