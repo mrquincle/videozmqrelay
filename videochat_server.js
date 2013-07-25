@@ -176,8 +176,8 @@ app.get('/image', function(req, res) {
 app.post('/command', function(req,res) {
 	try {
 		commandCount++
-		console.log('Send command ', commandCount, ':', req.body.data)
-		commandPublisher.send(['', req.body.data])
+		console.log('Send command ', commandCount, ':', req.body)
+		commandPublisher.send(['', req.body])
 	} catch(err) {
 		console.log('post-command', err)
 	}
