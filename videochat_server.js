@@ -22,6 +22,7 @@ var eventReceiver = zmq.socket('pull')
 var clientCount = 0, clients = new Array()
 
 var videoCount = 0
+var commandCount = 0
 
 // default ports for ZeroMQ
 var videoPort = process.env.VIDEOPORT || 4000
@@ -100,20 +101,24 @@ videoSubscriber.bind('tcp://*:{0}'.format(Number(videoPort)), function(err) {
 // The videoSubscriber is able to receive ZMQ images over port videoPort
 
 videoSubscriber.on('message', function(target, rotation, data) {
-	try {
-		videoCount++
+	//try {
+	videoCount++
 
-		console.log('Video received ', videoCount)
+	console.log('Video received ', videoCount)
+
+	image.data = data
+	new_image_flag = true
+	
 		// forward (publish) the received video frame to the subscribed clients
-		videoPublisher.send([target, rotation, data]);
+		//videoPublisher.send([target, rotation, data]);
 
 		// serverProcessed();
 
 		// encode the video frame as base64 and publish it
-		videoBase64Publisher.send([target, rotation, data.toString('base64')]);
-	} catch(err) {
-		console.log('videoSubscriber', err)
-	}
+		//videoBase64Publisher.send([target, rotation, data.toString('base64')]);
+	// } catch(err) {
+	// 	console.log('videoSubscriber', err)
+	// }
 
 })
 
@@ -132,8 +137,8 @@ commandReceiver.bind('tcp://*:{0}'.format(Number(commandPort)), function(err) {
 
 commandReceiver.on('message', function(target, data) {
 	try {
-		commandPending++
-		console.log('Command received ', commandPending, ':', target.toString(), data.toString())
+		commandCount++
+		console.log('Command received ', commandCount, ':', target.toString(), data.toString())
 
 		// forward (publish) the received video frame to the subscribed clients
 		commandPublisher.send([target, data])
@@ -166,8 +171,8 @@ app.get('/image', function(req, res) {
 
 app.post('/command/:target', function(req,res) {
 	try {
-		commandPending++
-		console.log('Send command ', commandPending, ':', req.params.target, req.data)
+		commandCount++
+		console.log('Send command ', commandCount, ':', req.params.target, req.data)
 		commandPublisher.send([req.params.target, req.data])
 	} catch(err) {
 		console.log('post-command', err)
